@@ -131,9 +131,163 @@ Exemplo de definição no Swagger para o endpoint de validação:
 * **Fácil Manutenção**: Com o Azure Functions, não há necessidade de se preocupar com infraestrutura. A manutenção do código fica mais simples, pois você pode focar apenas nas funções necessárias para a validação.  
 * **Alta Disponibilidade**: Azure Functions garante alta disponibilidade e resilência, podendo rodar em diferentes regiões, dependendo das configurações de escalabilidade.
 
-#### **Conclusão**
+# Deploy para a Azure com Terraform e GitHub Actions
 
-Este projeto é uma solução eficiente e econômica para a validação de CPFs utilizando a infraestrutura da Azure e a API de consulta de CPF do governo. Ao integrar a Azure Functions com a API pública, conseguimos oferecer uma validação rápida, escalável e confiável, com a documentação da API facilitada pelo Swagger. Além disso, a arquitetura serverless permite um gerenciamento simplificado e uma redução significativa nos custos operacionais.
+Este repositório contém o código necessário para configurar e fazer o deploy de um aplicativo na plataforma Azure, utilizando o Terraform para provisionamento de recursos e GitHub Actions para automação de deploy contínuo.
+
+## Tecnologias Utilizadas
+
+- **Terraform**: Para criação e gerenciamento de recursos na Azure  
+  <img src="https://img.icons8.com/?size=100&id=WncR8Bcg5nE9&format=png&color=000000" width="30" alt="Terraform Icon">
+
+- **Azure CLI**: Para interagir com a Azure a partir do GitHub Actions.  
+  <img src="https://img.icons8.com/?size=100&id=VLKafOkk3sBX&format=png&color=000000" width="30" alt="Azure CLI Icon">
+
+- **GitHub Actions**: Para automação do fluxo de deploy para Azure.  
+  <img src="https://img.icons8.com/?size=100&id=106440&format=png&color=000000" width="30" alt="GitHub Actions Icon">
+
+
+
+## Estrutura do Repositório
+
+O repositório contém os seguintes arquivos principais:
+
+- **main.tf**: Arquivo Terraform para provisionamento de recursos na Azure.
+
+- **.github/workflows/azure-deploy.yml**: Arquivo de workflow do GitHub Actions para realizar o deploy do código.
+
+## Passos para Configuração e Deploy
+
+### 1. **Criação do arquivo main.tf**
+
+O arquivo `main.tf` contém a configuração do Terraform para criar os seguintes recursos na Azure:
+
+- **Resource Group**: Para organizar os recursos da Azure.
+
+- **App Service Plan**: Para definir o plano de serviço para o seu aplicativo.
+
+- **App Service**: O serviço onde o código será implantado.
+
+```hcl 
+
+# main.tf
+
+# Configuração do Provider Azure
+provider "azurerm" {
+  features {}
+}
+
+# Criação de um Resource Group
+resource "azurerm_resource_group" "example" {
+  name     = "example-rg"
+  location = "East US"
+}
+
+# Criação de um App Service Plan
+resource "azurerm_app_service_plan" "example" {
+  name                = "example-asp"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  kind                = "App"
+  sku {
+    tier = "Standard"
+    size = "S1"
+  }
+}
+
+# Criação de um App Service (onde seu código será implantado)
+resource "azurerm_app_service" "example" {
+  name                = "example-app-service"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  app_service_plan_id = azurerm_app_service_plan.example.id
+
+  app_settings = {
+    "DATABASE_CONNECTION_STRING" = "your_connection_string_here"
+    "SECRET_KEY"                 = "your_secret_key_here"
+  }
+}
+
+```
+
+
+### **2. Criação do Workflow de Deploy com GitHub Actions**
+
+O arquivo `.github/workflows/azure-deploy.yml` automatiza o processo de deploy para a Azure usando o GitHub Actions.
+
+Este workflow realiza as seguintes etapas:
+
+1. **Checkout do código**: Faz o checkout do código a ser implantado.  
+2. **Configuração do Azure CLI**: Configura o Azure CLI usando a ação `azure/login@v1`.  
+3. **Deploy do aplicativo**: Realiza o deploy do código para o App Service da Azure.
+
+```yaml
+
+# .github/workflows/azure-deploy.yml
+
+name: Azure Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Azure CLI
+      uses: azure/login@v1
+
+    - name: Deploy to Azure
+      run: |
+        az webapp deploy --resource-group example-rg --name example-app-service --src-path ./path-to-your-app
+```
+### **3. Autenticação na Azure**
+
+Para garantir que o GitHub Actions tenha permissão para fazer deploy na Azure, é necessário configurar as credenciais de autenticação via Service Principal.
+
+Crie os seguintes **Secrets** no seu repositório GitHub:
+
+* `AZURE_CLIENT_ID`: ID do cliente da sua aplicação registrada no Azure.  
+* `AZURE_CLIENT_SECRET`: Segredo do cliente.  
+* `AZURE_TENANT_ID`: ID do locatário (tenant) da Azure.
+
+Esses valores podem ser obtidos ao registrar um aplicativo no **Azure Active Directory**.
+
+### **4\. Rodando o Terraform**
+
+Para aplicar o Terraform e provisionar os recursos na Azure:
+
+1. Instale o Terraform.  
+2. Execute os seguintes comandos no terminal:
+
+```bash
+
+terraform init    # Inicializa o Terraform
+
+terraform plan    # Visualiza o que será alterado
+
+terraform apply   # Aplica as mudanças e cria os recursos na Azure
+
+```
+### **5. Deploy Automatizado**
+
+Assim que os recursos forem provisionados, o GitHub Actions será acionado automaticamente com um push para o branch `main`. O código será então implantado no App Service na Azure.
+
+### **6\. Verificando o Deploy**
+
+Após o deploy ser completado, acesse o URL do seu App Service (por exemplo, `https://example-app-service.azurewebsites.net`) para verificar se o seu aplicativo está em funcionamento.
+
+## **Conclusão**
+
+Este fluxo automatizado proporciona uma solução robusta e eficiente para o deploy de código na Azure, utilizando Terraform para o provisionamento de recursos e GitHub Actions para a automação do processo. A flexibilidade oferecida pelo Terraform permite personalizar a infraestrutura conforme as necessidades do projeto.
+
+Além disso, este projeto também integra a validação de CPFs através da infraestrutura da Azure, utilizando a API pública de consulta de CPF do governo. A combinação com a arquitetura serverless e a utilização de Azure Functions garante uma solução escalável, econômica e de fácil gerenciamento. A documentação da API, facilitada pelo Swagger, torna o processo de integração ainda mais simples e eficiente, promovendo uma redução significativa nos custos operacionais.
+
 
 ## Licença
 
