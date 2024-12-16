@@ -1,0 +1,53 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Validação de CPF",
+      "description": "API para validação de CPF",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/validar-cpf": {
+        "post": {
+          "summary": "Valida um CPF",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cpf": {
+                      "type": "string",
+                      "example": "12345678909"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "CPF válido",
+              "content": {
+                "application/json": {
+                  "example": { "cpf": "12345678909", "status": "valid" }
+                }
+              }
+            },
+            "400": {
+              "description": "CPF inválido",
+              "content": {
+                "application/json": {
+                  "example": { "cpf": "12345678909", "status": "invalid" }
+                }
+              }
+            },
+            "500": {
+              "description": "Erro no servidor"
+            }
+          }
+        }
+      }
+    }
+  }
+  
